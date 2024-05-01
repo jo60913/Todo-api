@@ -40,10 +40,12 @@ func SetFCMSetting() {
 	timezone, _ := time.LoadLocation("Asia/Taipei")
 	s := gocron.NewScheduler(timezone)
 
+	// 每3秒执行一次
+	// s.Every(3).Seconds().Do(TriggerFCM)
 	s.Every(1).Day().At("08:00").Do(TriggerFCM)
 	s.StartBlocking()
 }
 
 func TriggerFCM() {
-	//ToDo八點要執行的FCM
+	fmt.Println("八點執行FCM")
 }
