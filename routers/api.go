@@ -11,4 +11,8 @@ func InitApi(r *gin.Engine, client *firestore.Client) {
 	api.POST("/update/notification", func(c *gin.Context) {
 		web.UpdateNotification(c, client)
 	})
+
+	api.POST("/get/notification", func(c *gin.Context) {
+		web.GetNotification(c, client)
+	})
 }
