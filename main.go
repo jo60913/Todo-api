@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	firebase "firebase.google.com/go"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	log.SetOutput(os.Stderr)
 	log.Print("開始執行")
 	sa := option.WithCredentialsFile("todo-app-firebase-adminsdk.json")
 	app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
