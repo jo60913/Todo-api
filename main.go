@@ -11,13 +11,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
 	"github.com/jo60913/Todo-api/routers"
+	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 )
 
 func main() {
 	log.SetOutput(os.Stderr)
 	log.Print("開始執行")
-	sa := option.WithCredentialsFile("todo-app-firebase-adminsdk.json")
+	envErr := godotenv.Load()
+	if envErr != nil {
+		log.Fatal("Error loading .env file", envErr)
+	}
+	firebaseAdminSdk := os.Getenv("FIREBASE_ADMIN_SDK")
+
+	sa := option.WithCredentialsJSON([]byte(firebaseAdminSdk))
 	app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
 	if newAppErr != nil {
 		fmt.Println("firebase.NewApp錯誤")
