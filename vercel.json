@@ -1,8 +1,5 @@
 {
   "routes": [
-    {
-      "src": "/.*",
-      "dest": "/api/router.go"
-    }
+    { "src": "/(.*)", "dest": "/api" }
   ]
 }
