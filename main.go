@@ -1,16 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
 
-	"cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
-	"google.golang.org/api/option"
 )
 
 var apiUrl = "https://todo-api"
@@ -24,16 +20,16 @@ func main() {
 	// }
 	// firebaseAdminSdk := os.Getenv("FIREBASE_ADMIN_SDK")
 
-	sa := option.WithCredentialsFile("todo-app-firebase-adminsdk.json")
-	app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
-	if newAppErr != nil {
-		fmt.Println("firebase.NewApp錯誤")
-	}
+	// sa := option.WithCredentialsFile("todo-app-firebase-adminsdk.json")
+	// app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
+	// if newAppErr != nil {
+	// 	fmt.Println("firebase.NewApp錯誤")
+	// }
 
-	client, err := app.Firestore(context.Background())
-	if err != nil {
-		fmt.Println("firestore登入錯誤", err.Error())
-	}
+	// client, err := app.Firestore(context.Background())
+	// if err != nil {
+	// 	fmt.Println("firestore登入錯誤", err.Error())
+	// }
 
 	// defer client.Close()
 	// server := gin.Default()
@@ -51,42 +47,46 @@ func main() {
 			})
 			return
 		}
-
-		_, readErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Get(context.Background())
-		if readErr != nil { //沒有notification時新增
-			_, addErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
-				"FCM": notificationUpdate.NotificationValue,
-			})
-			if addErr != nil {
-				c.JSON(http.StatusOK, gin.H{
-					"ErrorMsg":  "新增notification時錯誤",
-					"ErrorFlag": "2",
-				})
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"ErrorMsg":  "",
-				"ErrorFlag": "0",
-			})
-			return
-		}
-
-		_, updateErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Update(context.Background(), []firestore.Update{
-			{Path: "FCM", Value: notificationUpdate.NotificationValue},
-		})
-
-		if updateErr != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"ErrorMsg":  "修改時發生錯誤",
-				"ErrorFlag": "2",
-			})
-			return
-		}
-
 		c.JSON(http.StatusOK, gin.H{
-			"ErrorMsg":  "",
-			"ErrorFlag": "0",
+			"ErrorMsg":  "成功" + notificationUpdate.UserToken,
+			"ErrorFlag": "1",
 		})
+
+		// _, readErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Get(context.Background())
+		// if readErr != nil { //沒有notification時新增
+		// 	_, addErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
+		// 		"FCM": notificationUpdate.NotificationValue,
+		// 	})
+		// 	if addErr != nil {
+		// 		c.JSON(http.StatusOK, gin.H{
+		// 			"ErrorMsg":  "新增notification時錯誤",
+		// 			"ErrorFlag": "2",
+		// 		})
+		// 		return
+		// 	}
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"ErrorMsg":  "",
+		// 		"ErrorFlag": "0",
+		// 	})
+		// 	return
+		// }
+
+		// _, updateErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Update(context.Background(), []firestore.Update{
+		// 	{Path: "FCM", Value: notificationUpdate.NotificationValue},
+		// })
+
+		// if updateErr != nil {
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"ErrorMsg":  "修改時發生錯誤",
+		// 		"ErrorFlag": "2",
+		// 	})
+		// 	return
+		// }
+
+		// c.JSON(http.StatusOK, gin.H{
+		// 	"ErrorMsg":  "",
+		// 	"ErrorFlag": "0",
+		// })
 
 	})
 	router.Run()
