@@ -37,7 +37,7 @@ func main() {
 	// go SetFCMSetting()
 	// server.Run()
 	router := gin.Default()
-	router.POST("/api", func(c *gin.Context) {
+	router.GET("/api", func(c *gin.Context) {
 		var notificationUpdate NotificationUpdate
 		err := c.ShouldBindJSON(&notificationUpdate)
 		if err != nil {
@@ -48,7 +48,7 @@ func main() {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"ErrorMsg":  "成功" + notificationUpdate.UserToken,
+			"ErrorMsg":  "成功 Get",
 			"ErrorFlag": "1",
 		})
 
