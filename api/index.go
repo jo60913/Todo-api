@@ -29,7 +29,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			"ErrorFlag": "0",
 		})
 	})
-
+	router.ServeHTTP(w, r)
 }
 
 type NotificationUpdate struct {
