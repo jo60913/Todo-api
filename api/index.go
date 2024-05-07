@@ -32,8 +32,3 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	router.ServeHTTP(w, r)
 	router.Run()
 }
-
-type NotificationUpdate struct {
-	UserToken         string `json:"UserToken"`
-	NotificationValue bool   `json:"NotificationValue"`
-}
