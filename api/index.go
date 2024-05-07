@@ -16,6 +16,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 	server.POST("/hello", func(context *Context) {
+
 		name := context.Query("name")
 		if name == "" {
 			context.JSON(400, H{
@@ -28,6 +29,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 	server.GET("/user/:id", func(context *Context) {
+
 		context.JSON(400, H{
 			"data": H{
 				"id": context.Param("id"),
@@ -42,4 +44,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 	server.Handle(w, r)
+}
+
+type NotificationUpdate struct {
+	UserToken         string `json:"UserToken"`
+	NotificationValue bool   `json:"NotificationValue"`
 }

@@ -1,38 +1,36 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"log"
-	"os"
+	"net/http"
 	"time"
 
-	firebase "firebase.google.com/go"
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron"
-	"github.com/jo60913/Todo-api/routers"
-	"google.golang.org/api/option"
 )
 
 func main() {
-	log.SetOutput(os.Stderr)
-	log.Print("開始執行")
-	sa := option.WithCredentialsFile("todo-app-firebase-adminsdk.json")
-	app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
-	if newAppErr != nil {
-		fmt.Println("firebase.NewApp錯誤")
-	}
+	r := gin.Default()
+	// routes here
+	r.POST("/update/notification", func(c *gin.Context) {
 
-	client, err := app.Firestore(context.Background())
-	if err != nil {
-		fmt.Println("firestore登入錯誤", err.Error())
-	}
+		var notificationUpdate NotificationUpdate
+		err := c.ShouldBindJSON(&notificationUpdate)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"ErrorMsg":  "欄位錯誤",
+				"ErrorFlag": "3",
+			})
+			return
+		}
 
-	defer client.Close()
-	server := gin.Default()
-	routers.InitRouters(server, client)
-	go SetFCMSetting()
-	server.Run()
+		c.JSON(http.StatusOK, gin.H{
+			"ErrorMsg":  notificationUpdate.UserToken,
+			"ErrorFlag": "0",
+		})
+
+	})
+	r.Run()
 }
 
 type UpdateNotification struct {
@@ -52,4 +50,9 @@ func SetFCMSetting() {
 
 func TriggerFCM() {
 	fmt.Println("八點執行FCM")
+}
+
+type NotificationUpdate struct {
+	UserToken         string `json:"UserToken"`
+	NotificationValue bool   `json:"NotificationValue"`
 }
