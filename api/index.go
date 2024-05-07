@@ -1,34 +1,53 @@
 package api
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	. "github.com/tbxark/g4vercel"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
-	router := gin.Default()
-	router.GET("/", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "hellow",
+	server := New()
+
+	server.POST("/update/notification", func(ctx *Context) {
+		var notificationUpdate NotificationUpdate
+		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationUpdate)
+		if err != nil {
+			log.Fatal("錯誤", err.Error())
+			return
+		}
+
+		ctx.JSON(http.StatusOK, H{
+			"ErrorMsg":  "",
+			"ErrorFlag": "0",
 		})
 	})
 
-	router.POST("/hello", func(c *gin.Context) {
-		var notificationUpdate NotificationUpdate
-		err := c.ShouldBindJSON(&notificationUpdate)
+	server.POST("/get/notification", func(ctx *Context) {
+		var notificationGet NotificationGet
+		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationGet)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
+			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "欄位錯誤",
 				"ErrorFlag": "3",
 			})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"ErrorMsg":  notificationUpdate.NotificationValue,
-			"ErrorFlag": "0",
+		ctx.JSON(http.StatusOK, H{
+			"ErrorMsg":  "",
+			"ErrorFlag": "1",
 		})
 	})
-	router.ServeHTTP(w, r)
-	router.Run()
+	server.Handle(w, r)
+}
+
+type NotificationUpdate struct {
+	UserToken         string `json:"UserToken"`
+	NotificationValue bool   `json:"NotificationValue"`
+}
+
+type NotificationGet struct {
+	UserToken string `json:"UserToken"`
 }
