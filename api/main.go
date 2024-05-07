@@ -49,8 +49,3 @@ type UpdateNotification struct {
 func TriggerFCM() {
 	fmt.Println("八點執行FCM")
 }
-
-type NotificationUpdate struct {
-	UserToken         string `json:"UserToken"`
-	NotificationValue bool   `json:"NotificationValue"`
-}
