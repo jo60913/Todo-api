@@ -5,44 +5,21 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	firebase "firebase.google.com/go"
 	. "github.com/tbxark/g4vercel"
 	"google.golang.org/api/option"
 )
 
+var (
+	firebaseSdkAdmin = os.Getenv("FIREBASE_ADMIN_SDK")
+)
+
 func Handler(w http.ResponseWriter, r *http.Request) {
-	// _, filename, _, _ := runtime.Caller(0)
-	// currentDir := filepath.Dir(filename)
-	// currentfiles, currenterr := os.ReadDir(currentDir)
-	// fmt.Print("當前路徑", currentfiles)
-	// if currenterr != nil {
-	// 	fmt.Println("讀取目錄失敗:", currenterr)
-	// 	return
-	// }
-	// // 獲取當前路徑的上一層目錄
-	// parentDir := filepath.Dir(currentDir)
-
-	// // 列出上一層目錄下的所有檔案和目錄
-	// files, err := os.ReadDir(parentDir)
-	// if err != nil {
-	// 	fmt.Println("讀取目錄失敗:", err)
-	// 	return
-	// }
-
-	// for _, file := range files {
-	// 	log.Fatal("檔名", file.Name())
-	// 	fmt.Println(file.Name())
-	// }
-
-	// data, readErr := ioutil.ReadFile(fileName)
-	// if readErr != nil {
-	// 	log.Fatal("讀取json檔案錯誤", readErr)
-	// }
-	// log.Fatal(string(data))
-
 	server := New()
-	sa := option.WithCredentialsFile("todo-app-firebase-adminsdk.json")
+	log.Println("firestore admin 內容", firebaseSdkAdmin)
+	sa := option.WithCredentialsJSON([]byte(firebaseSdkAdmin))
 	app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
 	if newAppErr != nil {
 		log.Fatal("firebase.NewApp錯誤", newAppErr)
@@ -59,6 +36,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	server.POST("/update/notification", func(ctx *Context) {
 		var notificationUpdate NotificationUpdate
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationUpdate)
+		log.Println("/update/notification ", "UserToken : "+notificationUpdate.UserToken)
 		if err != nil {
 			log.Fatal("錯誤", err.Error())
 			return
@@ -73,7 +51,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	server.POST("/get/notification", func(ctx *Context) {
 		var notificationGet NotificationGet
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationGet)
+
+		log.Println("get/notification ", "UserToken : "+notificationGet.UserToken)
 		if err != nil {
+			log.Fatal("get/notification錯誤", "json轉換錯誤 "+err.Error())
 			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "欄位錯誤",
 				"ErrorFlag": "3",
@@ -81,7 +62,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_, readErr := client.Collection(notificationGet.UserToken).Doc("notification").Get(context.Background())
-		if readErr != nil { //沒有notification時新增
+		if readErr != nil { //沒有notificati
+			log.Fatal("get/notification 尚未新增", "新增FCM欄位"+readErr.Error())
 			_, addErr := client.Collection(notificationGet.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
 				"FCM": true,
 			})
@@ -98,6 +80,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		getvalue, getDocError := notificationDoc.Get(context.Background())
 
 		if getDocError != nil {
+			log.Fatal("get/notification notification欄位找不到", getDocError.Error())
 			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "找不到文件",
 				"ErrorFlag": "2",
@@ -108,6 +91,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		fcmValue, getFcmValueError := getvalue.DataAt("FCM")
 
 		if getFcmValueError != nil {
+			log.Fatal("get/notification ", "找不到FCM屬性")
 			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "找不到FCM屬性",
 				"ErrorFlag": "2",
@@ -115,6 +99,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Println("get/notification ", "成功")
 		ctx.JSON(http.StatusOK, H{
 			"ErrorMsg":  "",
 			"ErrorFlag": "0",
