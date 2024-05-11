@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	. "github.com/tbxark/g4vercel"
 	"google.golang.org/api/option"
@@ -18,17 +19,16 @@ var (
 
 func Handler(w http.ResponseWriter, r *http.Request) {
 	server := New()
-	log.Println("firestore admin 內容", firebaseSdkAdmin)
 	sa := option.WithCredentialsJSON([]byte(firebaseSdkAdmin))
 	app, newAppErr := firebase.NewApp(context.Background(), nil, sa)
 	if newAppErr != nil {
-		log.Fatal("firebase.NewApp錯誤", newAppErr)
+		log.Println("firebase.NewApp錯誤", newAppErr)
 		return
 	}
 
 	client, err := app.Firestore(context.Background())
 	if err != nil {
-		log.Fatal("firestore登入錯誤", err.Error())
+		log.Println("firestore登入錯誤", err.Error())
 		return
 	}
 	defer client.Close()
@@ -38,10 +38,50 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationUpdate)
 		log.Println("/update/notification ", "UserToken : "+notificationUpdate.UserToken)
 		if err != nil {
-			log.Fatal("錯誤", err.Error())
+			log.Println("/update/notification 傳入參數錯誤", err.Error())
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "參數錯誤",
+				"ErrorFlag": "1",
+			})
 			return
 		}
 
+		_, readErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Get(context.Background())
+		if readErr != nil { //沒有notification時新增
+			log.Println("/update/notification 找notification時錯誤", readErr.Error())
+			_, addErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
+				"FCM": notificationUpdate.NotificationValue,
+			})
+			if addErr != nil {
+				log.Println("/update/notification 新增notification時錯誤", addErr.Error())
+				ctx.JSON(http.StatusOK, H{
+					"ErrorMsg":  "新增notification時錯誤",
+					"ErrorFlag": "2",
+				})
+				return
+			}
+			log.Println("/update/notification 新增notification成功")
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "",
+				"ErrorFlag": "0",
+			})
+			return
+		}
+
+		_, updateErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Update(context.Background(), []firestore.Update{
+			{Path: "FCM", Value: notificationUpdate.NotificationValue},
+		})
+
+		if updateErr != nil {
+			log.Println("/update/notification 更新FCM時錯誤" + updateErr.Error())
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "修改時發生錯誤",
+				"ErrorFlag": "2",
+			})
+			return
+		}
+
+		log.Println("/update/notification 更新notification成功")
 		ctx.JSON(http.StatusOK, H{
 			"ErrorMsg":  "",
 			"ErrorFlag": "0",
@@ -54,7 +94,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("get/notification ", "UserToken : "+notificationGet.UserToken)
 		if err != nil {
-			log.Fatal("get/notification錯誤", "json轉換錯誤 "+err.Error())
+			log.Println("get/notification錯誤", "json轉換錯誤 "+err.Error())
 			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "欄位錯誤",
 				"ErrorFlag": "3",
@@ -63,7 +103,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 		_, readErr := client.Collection(notificationGet.UserToken).Doc("notification").Get(context.Background())
 		if readErr != nil { //沒有notificati
-			log.Fatal("get/notification 尚未新增", "新增FCM欄位"+readErr.Error())
+			log.Println("get/notification 尚未新增", "新增FCM欄位"+readErr.Error())
 			_, addErr := client.Collection(notificationGet.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
 				"FCM": true,
 			})
@@ -80,7 +120,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		getvalue, getDocError := notificationDoc.Get(context.Background())
 
 		if getDocError != nil {
-			log.Fatal("get/notification notification欄位找不到", getDocError.Error())
+			log.Println("get/notification notification欄位找不到", getDocError.Error())
 			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "找不到文件",
 				"ErrorFlag": "2",
@@ -91,7 +131,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		fcmValue, getFcmValueError := getvalue.DataAt("FCM")
 
 		if getFcmValueError != nil {
-			log.Fatal("get/notification ", "找不到FCM屬性")
+			log.Println("get/notification ", "找不到FCM屬性")
 			ctx.JSON(http.StatusOK, H{
 				"ErrorMsg":  "找不到FCM屬性",
 				"ErrorFlag": "2",
