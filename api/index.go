@@ -85,6 +85,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		ctx.JSON(http.StatusOK, H{
 			"ErrorMsg":  "",
 			"ErrorFlag": "0",
+			"Data":      notificationUpdate.NotificationValue,
 		})
 	})
 
