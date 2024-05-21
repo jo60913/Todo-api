@@ -36,7 +36,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	server.POST("/update/notification", func(ctx *Context) {
 		var notificationUpdate NotificationUpdate
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationUpdate)
-		log.Println("/update/notification ", "UserToken : "+notificationUpdate.UserToken)
+		log.Println("/update/notification ", "UserToken : "+notificationUpdate.UserID)
 		if err != nil {
 			log.Println("/update/notification 傳入參數錯誤", err.Error())
 			ctx.JSON(http.StatusOK, H{
@@ -46,10 +46,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, readErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Get(context.Background())
+		_, readErr := client.Collection(notificationUpdate.UserID).Doc("notification").Get(context.Background())
 		if readErr != nil { //沒有notification時新增
 			log.Println("/update/notification 找notification時錯誤", readErr.Error())
-			_, addErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
+			_, addErr := client.Collection(notificationUpdate.UserID).Doc("notification").Create(context.Background(), map[string]interface{}{
 				"FCM": notificationUpdate.NotificationValue,
 			})
 			if addErr != nil {
@@ -68,7 +68,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, updateErr := client.Collection(notificationUpdate.UserToken).Doc("notification").Update(context.Background(), []firestore.Update{
+		_, updateErr := client.Collection(notificationUpdate.UserID).Doc("notification").Update(context.Background(), []firestore.Update{
 			{Path: "FCM", Value: notificationUpdate.NotificationValue},
 		})
 
@@ -93,7 +93,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		var notificationGet NotificationGet
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationGet)
 
-		log.Println("get/notification ", "UserToken : "+notificationGet.UserToken)
+		log.Println("get/notification ", "UserToken : "+notificationGet.UserID)
 		if err != nil {
 			log.Println("get/notification錯誤", "json轉換錯誤 "+err.Error())
 			ctx.JSON(http.StatusOK, H{
@@ -102,10 +102,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		_, readErr := client.Collection(notificationGet.UserToken).Doc("notification").Get(context.Background())
+		_, readErr := client.Collection(notificationGet.UserID).Doc("notification").Get(context.Background())
 		if readErr != nil { //沒有notificati
 			log.Println("get/notification 尚未新增", "新增FCM欄位"+readErr.Error())
-			_, addErr := client.Collection(notificationGet.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
+			_, addErr := client.Collection(notificationGet.UserID).Doc("notification").Create(context.Background(), map[string]interface{}{
 				"FCM": true,
 			})
 			if addErr != nil {
@@ -117,7 +117,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		notificationDoc := client.Collection(notificationGet.UserToken).Doc("notification")
+		notificationDoc := client.Collection(notificationGet.UserID).Doc("notification")
 		getvalue, getDocError := notificationDoc.Get(context.Background())
 
 		if getDocError != nil {
@@ -147,14 +147,91 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			"Data":      fcmValue,
 		})
 	})
+
+	server.POST("/update/firstlogin", func(ctx *Context) {
+		var firstlogin FirstLogin
+		err := json.NewDecoder(ctx.Req.Body).Decode(&firstlogin)
+
+		log.Println("update/firstlogin ", "UserToken : "+firstlogin.UserToken)
+		if err != nil {
+			log.Println("update/firstlogin", "json轉換錯誤 "+err.Error())
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "欄位錯誤",
+				"ErrorFlag": "3",
+			})
+			return
+		}
+		_, readErr := client.Collection(firstlogin.UserToken).Doc("notification").Get(context.Background())
+		if readErr != nil { //沒有notification
+			log.Println("update/firstlogin 尚未新增", "新增FCM欄位 與fcm token 欄位"+readErr.Error())
+			_, addErr := client.Collection(firstlogin.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
+				"FCM": true,
+			})
+			if addErr != nil {
+				ctx.JSON(http.StatusOK, H{
+					"ErrorMsg":  "新增notification FCM時錯誤",
+					"ErrorFlag": "2",
+				})
+				return
+			}
+
+			_, addTokenErr := client.Collection(firstlogin.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
+				"FCMToken": firstlogin.UserToken,
+			})
+
+			if addTokenErr != nil {
+				ctx.JSON(http.StatusOK, H{
+					"ErrorMsg":  "新增notification Token時錯誤",
+					"ErrorFlag": "2",
+				})
+				return
+			}
+		}
+
+		notificationDoc := client.Collection(firstlogin.UserToken).Doc("notification")
+		getvalue, getDocError := notificationDoc.Get(context.Background())
+
+		if getDocError != nil {
+			log.Println("update/firstlogin notification欄位找不到", getDocError.Error())
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "找不到文件",
+				"ErrorFlag": "2",
+			})
+			return
+		}
+
+		fcmValue, getFcmValueError := getvalue.DataAt("FCM")
+
+		if getFcmValueError != nil {
+			log.Println("update/firstlogin ", "找不到FCM屬性")
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "找不到FCM屬性",
+				"ErrorFlag": "2",
+			})
+			return
+		}
+
+		log.Println("update/firstlogin ", "成功")
+		ctx.JSON(http.StatusOK, H{
+			"ErrorMsg":  "",
+			"ErrorFlag": "0",
+			"Data":      fcmValue,
+		})
+	})
+
 	server.Handle(w, r)
 }
 
 type NotificationUpdate struct {
-	UserToken         string `json:"UserToken"`
+	UserID            string `json:"UserID"`
 	NotificationValue bool   `json:"NotificationValue"`
 }
 
 type NotificationGet struct {
+	UserID string `json:"UserID"`
+}
+
+type FirstLogin struct {
+	UserID    string `json:"UserID"`
 	UserToken string `json:"UserToken"`
 }

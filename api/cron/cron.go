@@ -6,8 +6,8 @@ import (
 	// . "github.com/tbxark/g4vercel"
 )
 
-func Handlers(w http.ResponseWriter, r *http.Request) {
-	log.Println("執行定時任務 5/14")
+func Handler(w http.ResponseWriter, r *http.Request) {
+	log.Println("執行定時任務 5/20")
 	// server := New()
 	// server.POST("/cron/get", func(ctx *Context) {
 	// 	log.Println("執行定時任務 /cron/get api")
