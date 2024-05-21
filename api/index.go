@@ -163,25 +163,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		}
 		_, readErr := client.Collection(firstlogin.UserToken).Doc("notification").Get(context.Background())
 		if readErr != nil { //沒有notification
-			log.Println("update/firstlogin 尚未新增", "新增FCM欄位 與fcm token 欄位"+readErr.Error())
+			log.Println("update/firstlogin 尚未新增", "新增FCM欄位"+readErr.Error())
 			_, addErr := client.Collection(firstlogin.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
-				"FCM": true,
+				"FCM":      true,
+				"FCMToken": firstlogin.UserToken,
 			})
 			if addErr != nil {
 				ctx.JSON(http.StatusOK, H{
 					"ErrorMsg":  "新增notification FCM時錯誤",
-					"ErrorFlag": "2",
-				})
-				return
-			}
-
-			_, addTokenErr := client.Collection(firstlogin.UserToken).Doc("notification").Create(context.Background(), map[string]interface{}{
-				"FCMToken": firstlogin.UserToken,
-			})
-
-			if addTokenErr != nil {
-				ctx.JSON(http.StatusOK, H{
-					"ErrorMsg":  "新增notification Token時錯誤",
 					"ErrorFlag": "2",
 				})
 				return
