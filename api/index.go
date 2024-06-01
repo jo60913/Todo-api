@@ -1,8 +1,10 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,11 +12,13 @@ import (
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
 	. "github.com/tbxark/g4vercel"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
 var (
 	firebaseSdkAdmin = os.Getenv("FIREBASE_ADMIN_SDK")
+	firebasefcmkey   = os.Getenv("TODO_API_FIREBASE_FCM_KEY")
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -208,7 +212,84 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		})
 	})
 
+	server.POST("/notification/fcm", func(ctx *Context) {
+		cctx := context.Background()
+		collections := client.Collections(cctx)
+		for {
+			collectionRef, err := collections.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				log.Fatalf("Failed to get collection: %v", err)
+			}
+
+			log.Printf("Collection: %s", collectionRef.ID)
+			collection := client.Collection(collectionRef.ID)
+
+			log.Printf("取得notification資料")
+			notificationDoc := collection.Doc("notification")
+			getvalue, getDocError := notificationDoc.Get(context.Background())
+			if getDocError != nil {
+				log.Printf("取得 notfication時 錯誤")
+				continue
+			}
+
+			var nyData FcmInfo
+			log.Printf("轉換notification的值")
+			fcmError := getvalue.DataTo(&nyData)
+			if fcmError != nil {
+				log.Printf("轉換notification錯誤", fcmError)
+			}
+			if nyData.FcmValue {
+				log.Printf("開始傳送fcm token 為", nyData.FCMToken)
+				sendNotficationToUser(nyData.FCMToken)
+			}
+
+		}
+
+	})
+
 	server.Handle(w, r)
+}
+
+func sendNotficationToUser(FCMToken string) {
+	log.Printf("執行sendNotifcation方法 ", FCMToken)
+
+	data := map[string]interface{}{
+		"to": FCMToken,
+		"notification": map[string]string{
+			"body":     "localnotification 應該在前台",
+			"title":    "標題6/1 第一個 ",
+			"subtitle": "subtitle不知道是哪裡 大概是未展開的標題",
+		},
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+
+	url := "https://fcm.googleapis.com/fcm/send"
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", firebasefcmkey)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("FCM推播錯誤", err)
+		return
+	}
+	defer resp.Body.Close()
+	log.Printf("FCM推播結果", resp.Status)
 }
 
 type NotificationUpdate struct {
@@ -223,4 +304,9 @@ type NotificationGet struct {
 type FirstLogin struct {
 	UserID    string `json:"UserID"`
 	UserToken string `json:"UserToken"`
+}
+
+type FcmInfo struct {
+	FcmValue bool   `firestore:"FCM"`
+	FCMToken string `firestore:"FCMToken"` // in millions
 }
