@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
@@ -243,7 +244,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			}
 			if nyData.FcmValue {
 				log.Printf("開始傳送fcm token 為", nyData.FCMToken)
-				sendNotficationToUser(nyData.FCMToken)
+				taskInfo := getTaskCount(collection)
+				if hasIncompleteTesk(taskInfo) {
+					//有代辦事項時傳送
+					hasIncompleteTodos(nyData.FCMToken, taskInfo.inCompleteCount, taskInfo.totalCount)
+				} else {
+					// 沒有訊息時傳送
+					getNoToDoListMessage(nyData.FCMToken)
+				}
 			}
 
 		}
@@ -253,27 +261,96 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	server.Handle(w, r)
 }
 
-func sendNotficationToUser(FCMToken string) {
-	log.Printf("執行sendNotifcation方法 ", FCMToken)
-
+func getNoToDoListMessage(FCMToken string) {
 	data := map[string]interface{}{
 		"to": FCMToken,
 		"notification": map[string]string{
-			"body":     "localnotification 應該在前台",
-			"title":    "標題6/1 第一個 ",
-			"subtitle": "subtitle不知道是哪裡 大概是未展開的標題",
+			"body":  "點擊通知新增事項",
+			"title": "美好的一天開始 8點新增事項",
 		},
 	}
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
+		fmt.Println("getNoToDoListMessage轉換JSON錯誤:", err)
 		return
 	}
+	sendNotficationToUser(jsonData, FCMToken)
+}
+
+func hasIncompleteTodos(FCMToken string, inCompleteCount int, totalCount int) {
+	fmt.Println("未完成數 :" + strconv.Itoa(inCompleteCount) + " 總數" + strconv.Itoa(totalCount))
+	var successRate float32 = 0
+	if float32(totalCount)-float32(inCompleteCount) > 0 {
+		completedCount := totalCount - inCompleteCount
+		successRate = float32(completedCount) / float32(totalCount)
+	}
+	data := map[string]interface{}{
+		"to": FCMToken,
+		"notification": map[string]string{
+			"body":  fmt.Sprintf("點擊查看未完成任務 完成率為%.1f%%", successRate*100),
+			"title": "加油 目前還有" + strconv.Itoa(inCompleteCount) + "個未完成任務",
+		},
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("hasIncompleteTodos轉換JSON錯誤:", err)
+		return
+	}
+	sendNotficationToUser(jsonData, FCMToken)
+}
+
+func hasIncompleteTesk(taskinfo TaskInfo) bool {
+	return taskinfo.inCompleteCount > 0
+}
+
+func getTaskCount(collection *firestore.CollectionRef) TaskInfo {
+	docsRefs, docsErr := collection.Documents(context.Background()).GetAll()
+	inCompleteCount := 0
+	totalCount := 0
+	if docsErr != nil {
+		return TaskInfo{
+			inCompleteCount: inCompleteCount,
+			totalCount:      totalCount,
+		}
+	}
+
+	for _, element := range docsRefs {
+		if element.Ref.ID == "notification" {
+			continue
+		}
+
+		fmt.Println("element : " + element.Ref.ID)
+		todoEntry := element.Ref.Collection("todo-entries")
+		todoEntryDocs, todoentryErr := todoEntry.Documents(context.Background()).GetAll()
+		if todoentryErr != nil {
+			continue
+		}
+
+		for _, todoEntryItemElement := range todoEntryDocs {
+			todoEntryData := todoEntryItemElement.Data()
+			isDone := todoEntryData["isDone"].(bool)
+			totalCount += 1
+			if !isDone {
+				inCompleteCount += 1
+			}
+		}
+	}
+	fmt.Println("未完成 ：", inCompleteCount)
+	fmt.Println("總數", totalCount)
+	return TaskInfo{
+		inCompleteCount: inCompleteCount,
+		totalCount:      totalCount,
+	}
+}
+
+func sendNotficationToUser(message []byte, FCMToken string) {
+	log.Printf("執行sendNotifcation方法 ", FCMToken)
 
 	url := "https://fcm.googleapis.com/fcm/send"
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(message))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
 		return
@@ -309,4 +386,8 @@ type FirstLogin struct {
 type FcmInfo struct {
 	FcmValue bool   `firestore:"FCM"`
 	FCMToken string `firestore:"FCMToken"` // in millions
+}
+type TaskInfo struct {
+	inCompleteCount int
+	totalCount      int
 }
