@@ -20,6 +20,7 @@ import (
 var (
 	firebaseSdkAdmin = os.Getenv("FIREBASE_ADMIN_SDK")
 	firebasefcmkey   = os.Getenv("TODO_API_FIREBASE_FCM_KEY")
+	fcmHeader        = os.Getenv("FCM_HEADER")
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
@@ -214,6 +215,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	server.POST("/notification/fcm", func(ctx *Context) {
+		authHeader := ctx.Req.Header.Get("FCMHeader")
+		if authHeader != fcmHeader {
+			ctx.JSON(http.StatusUnauthorized, H{
+				"ErrorMsg":  "請設置header",
+				"ErrorFlag": "2",
+			})
+			return
+		}
 		cctx := context.Background()
 		collections := client.Collections(cctx)
 		for {
