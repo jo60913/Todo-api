@@ -12,6 +12,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go"
+	"github.com/jo60913/Todo-api/model"
 	. "github.com/tbxark/g4vercel"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -40,7 +41,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	defer client.Close()
 
 	server.POST("/update/notification", func(ctx *Context) {
-		var notificationUpdate NotificationUpdate
+		var notificationUpdate model.NotificationUpdate
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationUpdate)
 		log.Println("/update/notification ", "UserToken : "+notificationUpdate.UserID)
 		if err != nil {
@@ -96,7 +97,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	server.POST("/get/notification", func(ctx *Context) {
-		var notificationGet NotificationGet
+		var notificationGet model.NotificationGet
 		err := json.NewDecoder(ctx.Req.Body).Decode(&notificationGet)
 
 		log.Println("get/notification ", "UserToken : "+notificationGet.UserID)
@@ -155,7 +156,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	server.POST("/update/firstlogin", func(ctx *Context) {
-		var firstlogin FirstLogin
+		var firstlogin model.FirstLogin
 		err := json.NewDecoder(ctx.Req.Body).Decode(&firstlogin)
 
 		log.Println("update/firstlogin ", "UserToken : "+firstlogin.UserToken)
@@ -245,7 +246,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			var nyData FcmInfo
+			var nyData model.FcmInfo
 			log.Printf("轉換notification的值")
 			fcmError := getvalue.DataTo(&nyData)
 			if fcmError != nil {
@@ -256,7 +257,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 				taskInfo := getTaskCount(collection)
 				if hasIncompleteTesk(taskInfo) {
 					//有代辦事項時傳送
-					hasIncompleteTodos(nyData.FCMToken, taskInfo.inCompleteCount, taskInfo.totalCount)
+					hasIncompleteTodos(nyData.FCMToken, taskInfo.InCompleteCount, taskInfo.TotalCount)
 				} else {
 					// 沒有訊息時傳送
 					getNoToDoListMessage(nyData.FCMToken)
@@ -310,18 +311,18 @@ func hasIncompleteTodos(FCMToken string, inCompleteCount int, totalCount int) {
 	sendNotficationToUser(jsonData, FCMToken)
 }
 
-func hasIncompleteTesk(taskinfo TaskInfo) bool {
-	return taskinfo.inCompleteCount > 0
+func hasIncompleteTesk(taskinfo model.TaskInfo) bool {
+	return taskinfo.InCompleteCount > 0
 }
 
-func getTaskCount(collection *firestore.CollectionRef) TaskInfo {
+func getTaskCount(collection *firestore.CollectionRef) model.TaskInfo {
 	docsRefs, docsErr := collection.Documents(context.Background()).GetAll()
 	inCompleteCount := 0
 	totalCount := 0
 	if docsErr != nil {
-		return TaskInfo{
-			inCompleteCount: inCompleteCount,
-			totalCount:      totalCount,
+		return model.TaskInfo{
+			InCompleteCount: inCompleteCount,
+			TotalCount:      totalCount,
 		}
 	}
 
@@ -348,9 +349,9 @@ func getTaskCount(collection *firestore.CollectionRef) TaskInfo {
 	}
 	fmt.Println("未完成 ：", inCompleteCount)
 	fmt.Println("總數", totalCount)
-	return TaskInfo{
-		inCompleteCount: inCompleteCount,
-		totalCount:      totalCount,
+	return model.TaskInfo{
+		InCompleteCount: inCompleteCount,
+		TotalCount:      totalCount,
 	}
 }
 
@@ -376,27 +377,4 @@ func sendNotficationToUser(message []byte, FCMToken string) {
 	}
 	defer resp.Body.Close()
 	log.Printf("FCM推播結果", resp.Status)
-}
-
-type NotificationUpdate struct {
-	UserID            string `json:"UserID"`
-	NotificationValue bool   `json:"NotificationValue"`
-}
-
-type NotificationGet struct {
-	UserID string `json:"UserID"`
-}
-
-type FirstLogin struct {
-	UserID    string `json:"UserID"`
-	UserToken string `json:"UserToken"`
-}
-
-type FcmInfo struct {
-	FcmValue bool   `firestore:"FCM"`
-	FCMToken string `firestore:"FCMToken"` // in millions
-}
-type TaskInfo struct {
-	inCompleteCount int
-	totalCount      int
 }
