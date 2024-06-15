@@ -7,6 +7,7 @@ https://github.com/jo60913/TODO
 Go版本為1.22.2
 
 RESTful api 設置在api/index.go Handler方法
+資料存放在Firebase firestore當中 所以需要先設定環境邊量
 執行api前需要設置以下環境變量
 
 1. FIREBASE_ADMIN_SDK => 需要到firebase/專案設定/服務帳戶/Firebase admin sdk 產生新的私密金鑰
@@ -15,6 +16,7 @@ RESTful api 設置在api/index.go Handler方法
 
 ### 如何部署
 
+可以依照以下指令，也可以進入到https://vercel.com/ 設定從github中做自動化部屬
 1. 安裝vercel
 ```
 npm install -g vercel
@@ -64,4 +66,5 @@ POST
 POST
 定時任務 每天8點推播提醒使用者未完成任務或請使用者新增任務。
 header需要對應環境變數的FCM_HEADER才可以發送
+定時任務設定在app.mergent.co網站中，每天UTC 00:00 會發送調用notification/fcm api後開始從Firebase firestore中找出有開啟推播功能的人來發送訊息。
 
