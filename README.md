@@ -46,19 +46,19 @@ vercel . --prod
 ```
 ### API
 
-/update/notification
+* /update/notification
 POST方法
 更新使用者是否開啟推播功能
 
-/get/notification
+* /get/notification
 POST
 取得使用推播功能狀態
 
-/update/firstlogin
+* /update/firstlogin
 POST
 第一次登入時推播通能預設開啟
 
-/notification/fcm
+* /notification/fcm
 POST
 定時任務 每天8點推播提醒使用者未完成任務或請使用者新增任務。
 header需要對應環境變數的FCM_HEADER才可以發送
