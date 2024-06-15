@@ -29,21 +29,21 @@ vercel . --prod
 
 
 ### 結構
-
+```
 .
 ├── api
-|   └── index.go   存放api的地方
-├── model    存放api request專換的JSON
-|   ├── FcmInfo.go  使用者是否開啟FCM，與FCMToken
-|   ├── FirstLogin.go  /update/firstlogin時，接收JSON
+|   └── index.go            存放api的地方
+├── model                   存放api request專換的JSON
+|   ├── FcmInfo.go          使用者是否開啟FCM，與FCMToken
+|   ├── FirstLogin.go       /update/firstlogin時，接收JSON
 |   ├── NotificationGet.go  /get/notification時接收JSON
 |   ├── NotificationUpdate  /update/notification時接收JSON
-|   └── TaskInfo.go  紀錄使用者未完成任務數量與任務數量總數
+|   └── TaskInfo.go         紀錄使用者未完成任務數量與任務數量總數
 ├── go.mod
 ├── go.sum
 ├── README.md
 └── vercel.json
-
+```
 ### API
 
 /update/notification
