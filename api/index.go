@@ -184,6 +184,19 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		_, updateErr := client.Collection(firstlogin.UserID).Doc("notification").Update(context.Background(), []firestore.Update{
+			{Path: "FCMToken", Value: firstlogin.UserToken},
+		})
+
+		if updateErr != nil {
+			log.Println("update/firstlogin notification更新錯誤", updateErr.Error())
+			ctx.JSON(http.StatusOK, H{
+				"ErrorMsg":  "更新錯誤",
+				"ErrorFlag": "2",
+			})
+			return
+		}
+
 		notificationDoc := client.Collection(firstlogin.UserID).Doc("notification")
 		getvalue, getDocError := notificationDoc.Get(context.Background())
 
