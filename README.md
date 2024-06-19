@@ -1,6 +1,6 @@
 # Todo-api
-給ToDo app 所使用的RESTful api
-ToDo app Github網址
+給ToDo app 所使用的RESTful api  
+ToDo app Github網址  
 https://github.com/jo60913/TODO
 
 ## Getting Started
@@ -50,20 +50,20 @@ vercel . --prod
 ```
 ### API
 
-* /update/notification
-POST方法
+* /update/notification  
+POST方法  
 更新使用者是否開啟推播功能
 
-* /get/notification
-POST
+* /get/notification  
+POST  
 取得使用推播功能狀態
 
-* /update/firstlogin
-POST
-第一次登入時推播通能預設開啟
+* /update/firstlogin  
+POST  
+每次進入app時上傳FCM token，如果使用者重新安裝app FCM的token就會失效導致推播無回應。所以每次登入都會重新上傳一次。
 
-* /notification/fcm
-POST
+* /notification/fcm  
+POST  
 定時任務 每天8點推播提醒使用者未完成任務或請使用者新增任務。
 header需要對應環境變數的FCM_HEADER才可以發送
 定時任務設定在app.mergent.co網站中，每天UTC 00:00 會發送調用notification/fcm api後開始從Firebase firestore中找出有開啟推播功能的人來發送訊息。
